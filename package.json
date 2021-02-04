@@ -19,6 +19,7 @@
   "homepage": "https://github.com/ianibo/folio-graphql-service-erm#readme",
   "dependencies": {
     "@apollo/federation": "^0.21.0",
+    "apollo-datasource-rest": "^0.9.7",
     "apollo-server": "^2.19.2",
     "graphql": "^15.5.0"
   }

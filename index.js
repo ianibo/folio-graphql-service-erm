@@ -1,9 +1,35 @@
 const { ApolloServer, gql } = require('apollo-server');
 const { buildFederatedSchema } = require('@apollo/federation');
+const { RESTDataSource, RequestOptions } = require('apollo-datasource-rest');
+
+
+// https://www.apollographql.com/docs/apollo-server/data/data-sources/
+class ModRSAPI extends RESTDataSource {
+
+  willSendRequest(request) {
+    request.headers.set('Authorization', this.context.token);
+  }
+
+  constructor(baseURL) {
+    super();
+    this.baseURL = baseURL;
+  }
+
+  async getAgreement(id) {
+    return this.get(`agreements/${id}`);
+  }
+
+  async getAgreements() {
+    return this.get(`agreements`);
+  }
+
+}
 
 
 // Access environment variables with
 // process.env.VAR_NAME
+//
+// MOD_AGREEMENTS_URL=http://localhost:9130/erm
 const port = 4001;
 const mod_agreements_endpoint = process.env.MOD_AGREEMENTS_URL
 
@@ -23,30 +49,26 @@ const typeDefs = gql`
 
   type Agreement @key(fields: "id") {
     id: ID!
-    title: String
+    name: String
+    description: String
   }
 
   extend type Query {
     agreements: [Agreement]
+    agreement(id: String!): Agreement
   }
 `;
-
-const agreements = [
-  {
-    id: 1,
-    title: 'The Awakening'
-  },
-  {
-    id: 2,
-    title: 'City of Glass'
-  },
-];
 
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
 const resolvers = {
   Query: {
-    agreements: () => agreements,
+    agreements: async (_source, _args, { dataSources }) => {
+      return dataSources.modRsAPI.getAgreement(id);
+    },
+    agreement: async (_source, { id }, { dataSources }) => {
+      return dataSources.modRsAPI.getAgreement(id);
+    },
   },
 };
 
@@ -54,7 +76,15 @@ const resolvers = {
 // The ApolloServer constructor requires two parameters: your schema
 // definition and your set of resolvers.
 const server = new ApolloServer( {
-  schema : buildFederatedSchema([{typeDefs, resolvers}])
+  schema : buildFederatedSchema([
+            {typeDefs, 
+             resolvers,
+             dataSources: () => {
+                return {
+                  modRsAPI: new ModRSAPI(mod_agreements_endpoint)
+                };
+              },
+            }])
 });
 
 

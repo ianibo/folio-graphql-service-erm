@@ -7,6 +7,7 @@ const { RESTDataSource, RequestOptions } = require('apollo-datasource-rest');
 class ModRSAPI extends RESTDataSource {
 
   willSendRequest(request) {
+    console.log("Setting headers %o", this);
     request.headers.set('Authorization', this.context.token);
   }
 

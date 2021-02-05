@@ -7,8 +7,9 @@ const { RESTDataSource, RequestOptions } = require('apollo-datasource-rest');
 class ModRSAPI extends RESTDataSource {
 
   willSendRequest(request) {
-    console.log("Setting headers %o", this);
-    request.headers.set('Authorization', this.context.token);
+    console.log("Setting headers context: %o", this.context);
+    request.headers.set('x-okapi-tenant', this.context['okapi-tenant']);
+    request.headers.set('x-okapi-token', this.context['okapi-token']);
   }
 
   constructor(baseURL) {
@@ -18,12 +19,12 @@ class ModRSAPI extends RESTDataSource {
 
   async getAgreement(id) {
     console.log("getAgreement()");
-    return this.get(`agreements/${id}`);
+    return this.get(`sas/${id}`);
   }
 
   async getAgreements() {
     console.log("getAgreements()");
-    return this.get(`agreements`);
+    return this.get(`sas`);
   }
 
 }
@@ -65,13 +66,21 @@ const typeDefs = gql`
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
 // https://spectrum.chat/apollo/apollo-federation/issue-using-datasources-with-buildfederatedschema~a6b99f47-bced-422d-9bfa-55c900f5f0bc
+// https://medium.com/wehkamp-techblog/using-headers-with-apollo-datasources-1c4c019d080c
+// https://github.com/apollographql/apollo-server/issues/3558
+// 
 const resolvers = {
   Query: {
-    agreements: async (_source, _args, { dataSources }) => {
-      console.log("agreements resolver %o", dataSources);
-      return dataSources.modRsAPI.getAgreements();
+    // agreements: async (_source, _args, { req, dataSources }) => {
+    agreements: async (_source, _args, context, info ) => {
+      console.log("_source %o ", _source );
+      console.log("_args %o ", _args );
+      console.log("agreements resolver context=%o ", context );
+      console.log("agreements resolver info=%o", info);
+      // return dataSources.modRsAPI.getAgreements();
+      return context.dataSources.modRsAPI.getAgreements();
     },
-    agreement: async (_source, { id }, { dataSources }) => {
+    agreement: async (_source, { id }, { req, dataSources }) => {
       return dataSources.modRsAPI.getAgreement(id);
     },
   },
@@ -86,7 +95,18 @@ const server = new ApolloServer( {
       modRsAPI: new ModRSAPI(mod_agreements_endpoint)
     };
   },
-  schema : buildFederatedSchema([ {typeDefs, resolvers }])
+  schema : buildFederatedSchema([ {
+             typeDefs, 
+             resolvers
+           }]),
+  context:  (ctx) => {
+               console.log("req: %o",ctx.req.headers);
+               return {
+                 "okapi-token": ctx.req.headers['x-okapi-token'],
+                 "okapi-tenant": ctx.req.headers['x-okapi-tenant'],
+               }
+             }
+
 });
 
 

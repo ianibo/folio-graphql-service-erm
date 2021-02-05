@@ -17,10 +17,12 @@ class ModRSAPI extends RESTDataSource {
   }
 
   async getAgreement(id) {
+    console.log("getAgreement()");
     return this.get(`agreements/${id}`);
   }
 
   async getAgreements() {
+    console.log("getAgreements()");
     return this.get(`agreements`);
   }
 
@@ -62,10 +64,12 @@ const typeDefs = gql`
 
 // Resolvers define the technique for fetching the types defined in the
 // schema. This resolver retrieves books from the "books" array above.
+// https://spectrum.chat/apollo/apollo-federation/issue-using-datasources-with-buildfederatedschema~a6b99f47-bced-422d-9bfa-55c900f5f0bc
 const resolvers = {
   Query: {
     agreements: async (_source, _args, { dataSources }) => {
-      return dataSources.modRsAPI.getAgreement(id);
+      console.log("agreements resolver %o", dataSources);
+      return dataSources.modRsAPI.getAgreements();
     },
     agreement: async (_source, { id }, { dataSources }) => {
       return dataSources.modRsAPI.getAgreement(id);
@@ -77,15 +81,12 @@ const resolvers = {
 // The ApolloServer constructor requires two parameters: your schema
 // definition and your set of resolvers.
 const server = new ApolloServer( {
-  schema : buildFederatedSchema([
-            {typeDefs, 
-             resolvers,
-             dataSources: () => {
-                return {
-                  modRsAPI: new ModRSAPI(mod_agreements_endpoint)
-                };
-              },
-            }])
+  dataSources: () => {
+    return {
+      modRsAPI: new ModRSAPI(mod_agreements_endpoint)
+    };
+  },
+  schema : buildFederatedSchema([ {typeDefs, resolvers }])
 });
 
 

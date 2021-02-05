@@ -15,9 +15,8 @@ echo Submit query with auth $AUTH_TOKEN
 
 curl -v -v -v -H "X-Okapi-Tenant: ${TENANT}" \
          -H "X-Okapi-Token: ${AUTH_TOKEN}" \
-         -H "Content-Type: application/json" -X POST http://localhost:4001 -d '{
-  "query": "agreements() { name description }"
-}'
+         -H "Content-Type: application/json" -X POST http://localhost:4001 -d '{"query" : "{ agreements { name description } }" }'
+
 
 # R1=`curl -H "X-Okapi-Tenant: ${TENANT}" \
 #          -H "X-Okapi-Token: ${AUTH_TOKEN}" \
